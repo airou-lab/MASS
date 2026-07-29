@@ -504,13 +504,13 @@ class Environment:
         ppoAgents = []
         for ppoAgent in range(numPpoAgents):
             bestConfig = {
-                "lr": 3.62e-4,   # log-uniform
-                "gamma": 0.9514,                        # uniform
-                "lam": 0.9514,
-                "clip": 0.277,
-                "entropy_coef": 0.04019,
-                "batch_size": 64,
-                "bptt_chunk": 16
+                "lr": 5.0e-4,   # log-uniform
+                "gamma": 0.95,                        # uniform
+                "lam": 0.95,
+                "clip": 0.2,
+                "entropy_coef": 1.0e-3,
+                "batch_size": 16,
+                "bptt_chunk": 32
             }
             
             ppoAgents.append(PPOAgent(fftSize=self.cfg.FFT_SIZE, 
@@ -544,8 +544,8 @@ class Environment:
             
             bestConfig = {
                 "lr": 4.42e-5,   # log-uniform
-                "gamma": 0.9281,                        # uniform
-                "epsilon": 0.8175,
+                "gamma": 0.9,                        # uniform
+                "epsilon": 1.0,
                 "batch_size": 32            
             }
             
@@ -576,9 +576,9 @@ class Environment:
             # base_genome = None # Random Genomes
             mfosAgent = MFOSAgent(
                 population_size=5,
-                base_genome=base_genome,
+                base_genome=None,#base_genome,
                 mutation_scale=0.05,
-                elite_fraction=.4,
+                elite_fraction=0.4,
                 fresh_fraction=0.2,
                 seed=self.cfg.SEED + mfosAgentI, #42075 is good for random genomes and weights?
                 device=self.cfg.DEVICE,
@@ -614,7 +614,7 @@ class Environment:
                 fftSize=self.cfg.FFT_SIZE,
                 cpiLen=self.cfg.CPI_LEN,
                 device=self.cfg.DEVICE,
-                genome=genome,
+                genome=None,#genome,
                 seed=self.cfg.SEED + mfosAgentI + 1 #42075 is good for random genomes and weights?
             )
             ablatedMFOSAgents.append(ablatedMfosAgent)
@@ -675,7 +675,7 @@ class Environment:
             for staticAgent in staticAgents:
                 staticAgent.iterateCurrentAction()
                 currentState = self.updateStateInterval(currentState, staticAgent.currentAction)
-                
+
             if self.cfg.SIM_MODE == False: # Use Live Data
                 currentState = currentState | liveData[i%len(liveData)]
                 
@@ -1083,6 +1083,11 @@ class Environment:
         # Save to Excel
         df = pd.DataFrame(rows)
         df = df.round(4)
+
+        # Ensure output directory exists
+        output_dir = os.path.dirname(self.cfg.OUTPUT_FILE)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
 
         base, ext = os.path.splitext(self.cfg.OUTPUT_FILE)
         i = 1
