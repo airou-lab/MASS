@@ -19,6 +19,7 @@ from rewards import Rewards
 from signal_processing import SignalProcessor
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
+from matplotlib.ticker import FuncFormatter
 from Agents.Checkpoints.checkpoint_utils import load_agents, save_agents
 
 torch.backends.cudnn.deterministic = True
@@ -632,6 +633,12 @@ class Environment:
         binOwnership = np.zeros(self.cfg.FFT_SIZE, dtype=np.int8) # 0=unowned, 1=staticOwner, 2+=cogUser
 
 
+        spectrumSampleStartWindow = self.cfg.SPECTRUM_SAMPLE_SIZE
+        spectrumSampleMiddleStart = (iterations // 2) - (self.cfg.SPECTRUM_SAMPLE_SIZE // 2)
+        spectrumSampleMiddleEnd = (iterations // 2) + (self.cfg.SPECTRUM_SAMPLE_SIZE // 2)
+        spectrumSampleEndStart = iterations - self.cfg.SPECTRUM_SAMPLE_SIZE
+
+
         # main loop
         for i in range(iterations): # 1 = 12.8 microseconds
             if not self.cfg.EVAL_MODE and i == int(iterations * self.cfg.EVAL_SPLIT):
@@ -694,7 +701,11 @@ class Environment:
                 cognitiveAgents=allCogAgents
             )
             # Only build labeled state for final sample size
-            if i >= iterations-spectrumSampleSize: 
+            if (
+                i < spectrumSampleStartWindow 
+                or (spectrumSampleMiddleStart <= i < spectrumSampleMiddleEnd)
+                or i >= spectrumSampleEndStart
+            ): 
                 allStates.append(self.build_labeled_state(
                     staticState=staticState,
                     listOfAgents=allCogAgents,
@@ -841,6 +852,28 @@ class Environment:
         else:
             plt.xlabel("Frequency Bin (" + ("2.4-2.5" if liveDataFilename == './Data/spectrum_245ghz.dat' or liveDataFilename == './Data/union_spectrum_245ghz.dat' else "2.59-2.69") + "GHz)")
         plt.ylabel(f"Time Step (1 time step = {timestep} usec)")
+
+        sample = self.cfg.SPECTRUM_SAMPLE_SIZE
+
+        def y_formatter(y, pos):
+            if y < 0:
+                return ""
+
+            if y < sample:
+                return f"{int(y):,}"
+            elif y < 2 * sample:
+                return f"{int(spectrumSampleMiddleStart + (y - sample)):,}"
+            elif y < 3 * sample:
+                return f"{int(spectrumSampleEndStart + (y - 2 * sample)):,}"
+            else:
+                return ""
+        ax = plt.gca()
+        ax.yaxis.set_major_formatter(FuncFormatter(y_formatter))
+
+        # Divider lines
+        ax.axhline(sample - 0.5, color="black", linewidth=2)
+        ax.axhline(2 * sample - 0.5, color="black", linewidth=2)
+
         plt.title(f"Spectrum Occupancy Over Time (Last {spectrumSampleSize} time steps)")
         cbar = plt.colorbar(ticks=ticks)
         tickLabels = []
