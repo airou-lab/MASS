@@ -35,19 +35,15 @@ class CognitiveAgent(Agent, ABC):
         if self.cpiIndex == 0:
             self.sumCenterFreqForCPI = 0
             self.sumBwForCPI = 0
-        else:
-            self.sumCenterFreqForCPI += newAction[0]
-            self.sumBwForCPI += newAction[1]
+
+        self.sumCenterFreqForCPI += newAction[0]
+        self.sumBwForCPI += newAction[1]
     
     def getAveCenterFreqForCPI(self):
-        if self.cpiIndex == 0:
-            return 0
-        return self.sumCenterFreqForCPI / self.cpiIndex
+        return self.sumCenterFreqForCPI / (self.cpiIndex + 1)
     
     def getAveBwForCPI(self):
-        if self.cpiIndex == 0:
-            return 0
-        return self.sumBwForCPI / self.cpiIndex
+        return self.sumBwForCPI / (self.cpiIndex + 1)
     
     def curActionAsCenterFreqBW(self, binSize, startingFrequency):
         
